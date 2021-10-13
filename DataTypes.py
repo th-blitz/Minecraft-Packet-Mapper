@@ -47,8 +47,6 @@ class Socket_Streamer:
         if self.__packet_class.encryption_enabled == True:
             data = self.__packet_class.decrypt_data(data)
         self.__bytes_buffer.write(data)
-        self.__bytes_buffer.seek(0)
-
         return
 
     def read(self, bytes_stream):
@@ -58,13 +56,21 @@ class Socket_Streamer:
         if self.__bytes_buffer.tell() >= 1024 or self.__bytes_buffer.getvalue() == b'':
             self.__bytes_buffer.reset()
             self.__get()
+            self.__bytes_buffer.seek(0)
 
         elif self.__bytes_buffer.tell() >= self.__bytes_buffer.get_len():
             self.__bytes_buffer.reset()
             self.__get()
+            self.__bytes_buffer.seek(0)
 
 
         packet_len = VarInt.unpack(self.__bytes_buffer)
+
+        length_left = self.__bandwidth - self.__bytes_buffer.tell()
+        if length_left < packet_len:
+            
+            self.__get()
+
 
         data = self.__bytes_buffer.read(packet_len)
         bytes_stream.write(data)
