@@ -2,6 +2,8 @@ from Bridge import Proxy2Server
 import os
 from DataTypes import Packet, A_Packet_Class
 from DataTypes import VarInt, Output_Streamer, Bytes_Streamer, Socket_Streamer
+import time
+
 
 output = Output_Streamer()
 
@@ -9,9 +11,7 @@ input = Bytes_Streamer()
 
 login_packets = A_Packet_Class()
 
-server_sock = Proxy2Server('connect.2b2t.org', 25565)
-
-SOCK = Socket_Streamer(server_sock.server, login_packets)
+SOCK = Socket_Streamer('connect.2b2t.org', 25565, login_packets)
 
 handshake = Packet(login_packets)
 handshake.set(['VarInt', 'VarInt', 'String', 'Ushort', 'VarInt'])
@@ -79,7 +79,7 @@ SOCK.read(input)
 
 encryption_req.unpack(input, output)
 
-print(output.getvalue())
+print(f'encryption_req : {output.getvalue()}')
 
 data = output.getvalue()
 login_packets.server_id = data[1]
@@ -94,7 +94,7 @@ hash , ver_token , shared_secret = login_packets.get_hash()
 import mojang_api
 uuid , name , token , login_data = mojang_api.login_through_microsoft()
 res = mojang_api.join_server(token, uuid, hash)
-print(res)
+print(f'response from mojang : {res}')
 
 input.reset()
 input.write(encryption_res.pack([0x01, shared_secret, ver_token]))
@@ -108,19 +108,26 @@ SOCK.read(input)
 set_compression.unpack(input, output)
 
 login_packets.compression_threshold = output.getvalue()[1]
-
 login_packets.compression_enabled = True
 
 print(f'compression_packet : {output.getvalue()}')
+
+SOCK.read(input)
 
 login_success.unpack(input, output)
 
 print(f'login_success : {output.getvalue()}')
 
+SOCK.read(input)
 
-request.unpack(input, output)
+status.unpack(input, output)
+print(input.getvalue())
 
-print(output.getvalue())
+for i in range(100):
+    SOCK.read(input)
+    print(input.getvalue())
+    time.sleep(4)
+
 
 
 

@@ -22,18 +22,16 @@ class Proxy2Server:
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__sock.connect((host, port))
 
-        def read(self, value):
-            while True:
-                data = self.server.recv(value)
-                if data:
-                    break
-            return data
+    def read(self, value):
+        while True:
+            data = self.__sock.recv(value)
+            if data:
+                break
+        return data
 
-        def write(self, value):
-
-            self.server.sendall(value)
-
-            return
+    def write(self, value):
+        self.__sock.sendall(value)
+        return
 
 
 class Socket_Streamer:
@@ -41,34 +39,42 @@ class Socket_Streamer:
     def __init__(self, host, port, a_packet_class):
         self.__socket_buffer = Proxy2Server(host, port)
         self.__packet_class = a_packet_class
+        self.__bytes_buffer = Bytes_Streamer()
+        self.__bandwidth = 1024
 
-    def get_packet(self, bytes_stream):
+    def __get(self):
+        data = self.__socket_buffer.read(self.__bandwidth)
+        if self.__packet_class.encryption_enabled == True:
+            data = self.__packet_class.decrypt_data(data)
+        self.__bytes_buffer.write(data)
+        self.__bytes_buffer.seek(0)
 
-        while True:
-            data = self.__socket_buffer.recv(1)
-            if data:
-                bytes_stream.write(data)
-                if self.__packet_class.encryption_enabled == True:
-                    self.__packet_class.decrypt(bytes_stream)
-                print(bytes_stream.getvalue())
-                bytes_stream.seek(0)
+        return
 
-                packet_len = VarInt.unpack(bytes_stream)
-                bytes_stream.reset()
-                while True:
-                    data = self.__socket_buffer.recv(packet_len)
-                    if data:
-                        bytes_stream.write(data)
-                        if self.__packet_class.encryption_enabled == True:
-                            self.__packet_class.decrypt(bytes_stream)
-                        break
-                break
+    def read(self, bytes_stream):
+
+        bytes_stream.reset()
+
+        if self.__bytes_buffer.tell() >= 1024 or self.__bytes_buffer.getvalue() == b'':
+            self.__bytes_buffer.reset()
+            self.__get()
+
+        elif self.__bytes_buffer.tell() >= self.__bytes_buffer.get_len():
+            self.__bytes_buffer.reset()
+            self.__get()
+
+
+        packet_len = VarInt.unpack(self.__bytes_buffer)
+
+        data = self.__bytes_buffer.read(packet_len)
+        bytes_stream.write(data)
+        bytes_stream.seek(0)
         return
 
     def write(self, bytes_stream):
         if self.__packet_class.encryption_enabled == True:
             self.__packet_class.encrypt(bytes_stream)
-        self.__socket_buffer.sendall(bytes_stream.getvalue())
+        self.__socket_buffer.write(bytes_stream.getvalue())
         bytes_stream.reset()
         return
 
@@ -139,8 +145,8 @@ class Bytes_Streamer:
             self.__bytes_buffer.seek(value_1, value_0)
         return
 
-    def tell(self, value):
-        return self.__bytes_buffer.tell(value)
+    def tell(self):
+        return self.__bytes_buffer.tell()
 
     def getvalue(self):
         return self.__bytes_buffer.getvalue()
@@ -151,6 +157,11 @@ class Bytes_Streamer:
         self.reset()
         VarInt.pack(length, self.__bytes_buffer)
         self.__bytes_buffer.write(data)
+        return length
+
+    def get_len(self):
+        data = self.__bytes_buffer.getvalue()
+        length = len(data)
         return length
 
 class A_Packet_Class:
