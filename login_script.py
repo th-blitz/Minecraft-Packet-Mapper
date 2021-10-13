@@ -123,7 +123,7 @@ SOCK.read(input)
 status.unpack(input, output)
 print(input.getvalue())
 
-for i in range(100):
+while True:
     SOCK.read(input)
     print(input.getvalue())
     time.sleep(4)
