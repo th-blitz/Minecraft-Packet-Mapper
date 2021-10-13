@@ -48,8 +48,8 @@ def pack_0(self, input):
 
 def unpack_0(self, input, output):
 
-    if self.compression_enabled == True:
-        self.decompress(input)
+    # if self.compression_enabled == True:
+    #     self.decompress(input)
 
     output.reset()
     return
@@ -126,7 +126,7 @@ print(input.getvalue())
 while True:
     SOCK.read(input)
     print(input.getvalue())
-    time.sleep(4)
+    time.sleep(1)
 
 
 

@@ -40,10 +40,12 @@ class Socket_Streamer:
         self.__socket_buffer = Proxy2Server(host, port)
         self.__packet_class = a_packet_class
         self.__bytes_buffer = Bytes_Streamer()
-        self.__bandwidth = 1024
+        self.__bandwidth = 8096
 
-    def __get(self):
-        data = self.__socket_buffer.read(self.__bandwidth)
+    def __get(self, value = None):
+        if value == None:
+            value = self.__bandwidth
+        data = self.__socket_buffer.read(value)
         if self.__packet_class.encryption_enabled == True:
             data = self.__packet_class.decrypt_data(data)
         self.__bytes_buffer.write(data)
@@ -65,16 +67,16 @@ class Socket_Streamer:
 
 
         packet_len = VarInt.unpack(self.__bytes_buffer)
-
-        length_left = self.__bandwidth - self.__bytes_buffer.tell()
-        if length_left < packet_len:
-            
-            self.__get()
+        print(packet_len)
 
 
         data = self.__bytes_buffer.read(packet_len)
         bytes_stream.write(data)
         bytes_stream.seek(0)
+
+        if self.__packet_class.compression_enabled == True:
+            self.__packet_class.decompress(bytes_stream)
+
         return
 
     def write(self, bytes_stream):
@@ -258,17 +260,13 @@ class A_Packet_Class:
     def decompress(self, bytes_stream):
         payload_len = VarInt.unpack(bytes_stream)
 
-        if payload_len == 0:
-            pass
-        elif payload_len > 0:
-            value = bytes_stream.getvalue()
+        if payload_len > 0:
+            value = bytes_stream.read()
             bytes_stream.reset()
             bytes_stream.write(zlib.decompress(value))
             bytes_stream.seek(0)
-        return payload_len
 
-    def decompress_data(self, bytes_stream):
-        return
+        return payload_len
 
 
 class Packet():
@@ -283,7 +281,6 @@ class Packet():
             'Ushort' : Ushort,
             'String' : String,
             'Long'   : Long,
-            'UUID'   : UUID
         }
 
     def set(self, values):
