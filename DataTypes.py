@@ -65,10 +65,7 @@ class Socket_Streamer:
             self.__get()
             self.__bytes_buffer.seek(0)
 
-
         packet_len = VarInt.unpack(self.__bytes_buffer)
-        print(packet_len)
-
 
         data = self.__bytes_buffer.read(packet_len)
         bytes_stream.write(data)
@@ -80,6 +77,7 @@ class Socket_Streamer:
         return
 
     def write(self, bytes_stream):
+
         if self.__packet_class.encryption_enabled == True:
             self.__packet_class.encrypt(bytes_stream)
         self.__socket_buffer.write(bytes_stream.getvalue())
@@ -280,7 +278,7 @@ class Packet():
             'VarInt' : VarInt,
             'Ushort' : Ushort,
             'String' : String,
-            'Long'   : Long,
+            'Long'   : Long
         }
 
     def set(self, values):

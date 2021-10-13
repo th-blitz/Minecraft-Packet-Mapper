@@ -125,7 +125,8 @@ print(input.getvalue())
 
 while True:
     SOCK.read(input)
-    print(input.getvalue())
+    print(hex(VarInt.unpack(input)))
+    print(input.read())
     time.sleep(1)
 
 
