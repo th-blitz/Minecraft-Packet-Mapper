@@ -68,11 +68,13 @@ class Socket_Streamer:
         packet_len = VarInt.unpack(self.__bytes_buffer)
 
         data = self.__bytes_buffer.read(packet_len)
+
         bytes_stream.write(data)
         bytes_stream.seek(0)
 
         if self.__packet_class.compression_enabled == True:
             self.__packet_class.decompress(bytes_stream)
+
 
         return
 
@@ -262,6 +264,12 @@ class A_Packet_Class:
             value = bytes_stream.read()
             bytes_stream.reset()
             bytes_stream.write(zlib.decompress(value))
+            bytes_stream.seek(0)
+
+        elif payload_len == 0:
+            value = bytes_stream.read()
+            bytes_stream.reset()
+            bytes_stream.write(value)
             bytes_stream.seek(0)
 
         return payload_len
